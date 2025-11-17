@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/akhilnasimk/SS_backend/internal/dto"
 	"github.com/akhilnasimk/SS_backend/internal/services"
@@ -94,4 +95,37 @@ func (C *UserController) UpdateProfile(ctx *gin.Context) {
 		"message": "profile Updated ",
 	})
 
+}
+
+func (c *UserController) GetAllUsers(ctx *gin.Context) {
+	// Parse query parameters for pagination (default: limit=10, offset=0)
+	limitStr := ctx.DefaultQuery("limit", "10")
+	offsetStr := ctx.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	// Call service to get users
+	users, err := c.UserService.GetAllUserData(limit, offset)
+	if err != nil {
+		ctx.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to fetch users",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Return users
+	ctx.JSON(200, gin.H{
+		"success": true,
+		"data":    users,
+	})
 }

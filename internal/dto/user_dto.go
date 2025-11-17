@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type UserProfileResponse struct {
 	ID        uuid.UUID `json:"id"`
@@ -19,4 +23,15 @@ type UpdateProfileRequest struct {
 	Image    *string `json:"image"`
 	Phone    *string `json:"phone"`
 	Address  *string `json:"address"`
+}
+
+type AdminUserResponse struct {
+	ID        uuid.UUID `json:"id"`
+	UserName  string    `json:"username"`
+	Email     string    `json:"email"`
+	Image     *string   `json:"image,omitempty"`
+	IsAdmin   bool      `json:"is_admin"`
+	IsBlocked bool      `json:"is_blocked"`
+	CreatedAt time.Time `json:"created_at"`
+	UserRole  *string   `json:"role"`
 }

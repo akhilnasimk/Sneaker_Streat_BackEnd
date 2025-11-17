@@ -15,6 +15,7 @@ type UserRepository interface {
 	FindByID(id uuid.UUID) (*models.User, error)
 	PatchPasswordByEmail(email string, hashedPassword string) error
 	PatchUser(id uuid.UUID, updates map[string]interface{}) error
+	GetAllUsersPaginated(limit, offset int) ([]models.User, int64, error)
 }
 
 type userRepository struct {
@@ -90,4 +91,25 @@ func (r *userRepository) PatchUser(id uuid.UUID, updates map[string]interface{})
 	}
 
 	return nil
+}
+
+func (r *userRepository) GetAllUsersPaginated(limit, offset int) ([]models.User, int64, error) {
+	var users []models.User
+	var total int64
+
+	// Get total user count
+	if err := r.DB.Model(&models.User{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch paginated users, select only safe fields, order by creation date
+	if err := r.DB.Select("id, user_name, email, created_at,user_role,is_admin,is_blocked").
+		Order("created_at desc").
+		Limit(limit).
+		Offset(offset).
+		Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
 }
