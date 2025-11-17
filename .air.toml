@@ -1,0 +1,15 @@
+# .air.toml
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# This command tells 'go build' where your main package is (./cmd/server)
+# and creates the specific output binary.
+cmd = "go build -o ./tmp/server_app.exe ./cmd/server" 
+
+# 🚨 CRITICAL: This MUST match the file created above.
+# Air will use this path to run the server.
+bin = "./tmp/server_app.exe" 
+
+full_bin = ""
+# ... other settings ...
