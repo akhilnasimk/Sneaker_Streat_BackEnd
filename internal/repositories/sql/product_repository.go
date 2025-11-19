@@ -1,19 +1,16 @@
-package repositories
+package sql
 
 import (
 	"github.com/akhilnasimk/SS_backend/internal/models"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 	"gorm.io/gorm"
 )
-
-type ProductsRepository interface {
-	GetAllProducts(limit int, offset int) ([]models.Product, int64, error)
-}
 
 type productsRepository struct {
 	DB gorm.DB
 }
 
-func NewProductsRepository(db gorm.DB) ProductsRepository {
+func NewProductsRepository(db gorm.DB) interfaces.ProductsRepository {
 	return &productsRepository{
 		DB: db,
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/akhilnasimk/SS_backend/internal/dto"
-	"github.com/akhilnasimk/SS_backend/internal/repositories"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 	"github.com/google/uuid"
 )
 
@@ -15,10 +15,10 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo repositories.UserRepository
+	userRepo interfaces.UserRepository
 }
 
-func NewUserService(repo repositories.UserRepository) UserService {
+func NewUserService(repo interfaces.UserRepository) UserService {
 	return &userService{
 		userRepo: repo,
 	}

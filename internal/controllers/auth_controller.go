@@ -255,7 +255,7 @@ func (r *AuthController) UpdatePassword(ctx *gin.Context) {
 		})
 		return
 	}
-	//running the methode from the service 
+	//running the methode from the service
 	if err := r.authService.UpdatePassword(Request.Email, Request.NewPassword); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": "failed to update the password ",

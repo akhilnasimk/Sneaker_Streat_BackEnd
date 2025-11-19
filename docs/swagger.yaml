@@ -1,0 +1,230 @@
+definitions:
+  dto.ChangePasswordReq:
+    properties:
+      email:
+        type: string
+      newpassword:
+        type: string
+    type: object
+  dto.ForgotPasswordReq:
+    properties:
+      email:
+        type: string
+    type: object
+  dto.LoginReq:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.VerifyOTPReq:
+    properties:
+      email:
+        type: string
+      otp:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Sends OTP to user email for password reset
+      parameters:
+      - description: ForgotPasswordReq
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgotPasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Forgot password
+      tags:
+      - Auth
+  /api/v1/login:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a user and returns access token and sets refresh token
+        cookie
+      parameters:
+      - description: LoginReq
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login user
+      tags:
+      - Auth
+  /api/v1/refresh-token:
+    get:
+      description: Refreshes access token using refresh token cookie
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Refresh access token
+      tags:
+      - Auth
+  /api/v1/register:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user with username, email, password, and phone
+        number
+      parameters:
+      - description: RegisterRequest
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new user
+      tags:
+      - Auth
+  /api/v1/update-password:
+    put:
+      consumes:
+      - application/json
+      description: Updates user's password after OTP verification
+      parameters:
+      - description: ChangePasswordReq
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update password
+      tags:
+      - Auth
+  /api/v1/verify-otp:
+    post:
+      consumes:
+      - application/json
+      description: Verifies OTP sent to user email for password reset
+      parameters:
+      - description: VerifyOTPReq
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyOTPReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Verify OTP
+      tags:
+      - Auth
+swagger: "2.0"

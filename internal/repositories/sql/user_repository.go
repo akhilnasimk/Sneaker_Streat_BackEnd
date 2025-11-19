@@ -1,28 +1,20 @@
-package repositories
+package sql
 
 import (
 	"errors"
 	"fmt"
 
 	"github.com/akhilnasimk/SS_backend/internal/models"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
-
-type UserRepository interface {
-	CreateUser(user models.User) error
-	FindByEmail(email string) (*models.User, error)
-	FindByID(id uuid.UUID) (*models.User, error)
-	PatchPasswordByEmail(email string, hashedPassword string) error
-	PatchUser(id uuid.UUID, updates map[string]interface{}) error
-	GetAllUsersPaginated(limit, offset int) ([]models.User, int64, error)
-}
 
 type userRepository struct {
 	DB gorm.DB
 }
 
-func NewUserReposetory(db gorm.DB) UserRepository {
+func NewUserReposetory(db gorm.DB) interfaces.UserRepository {
 	return &userRepository{
 		DB: db,
 	}

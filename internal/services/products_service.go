@@ -2,18 +2,18 @@ package services
 
 import (
 	"github.com/akhilnasimk/SS_backend/internal/models"
-	"github.com/akhilnasimk/SS_backend/internal/repositories"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 )
 
 type ProductsService interface {
-	GetAllProducts(limit int, offset int) ([]models.Product, int64 ,error)
+	GetAllProducts(limit int, offset int) ([]models.Product, int64, error)
 }
 
 type productsService struct {
-	productRepo repositories.ProductsRepository
+	productRepo interfaces.ProductsRepository
 }
 
-func NewProductsService(repo repositories.ProductsRepository) ProductsService {
+func NewProductsService(repo interfaces.ProductsRepository) ProductsService {
 	return &productsService{
 		productRepo: repo,
 	}
@@ -21,19 +21,19 @@ func NewProductsService(repo repositories.ProductsRepository) ProductsService {
 
 func (s *productsService) GetAllProducts(page, limit int) ([]models.Product, int64, error) {
 
-    if limit <= 0 {
-        limit = 10
-    }
-    if page <= 0 {
-        page = 1
-    }
+	if limit <= 0 {
+		limit = 10
+	}
+	if page <= 0 {
+		page = 1
+	}
 
-    offset := (page - 1) * limit
+	offset := (page - 1) * limit
 
-    products, total, err := s.productRepo.GetAllProducts(limit, offset)
-    if err != nil {
-        return nil, 0, err
-    }
+	products, total, err := s.productRepo.GetAllProducts(limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
 
-    return products, total, nil
+	return products, total, nil
 }

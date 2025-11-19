@@ -4,14 +4,14 @@ import (
 	"github.com/akhilnasimk/SS_backend/internal/config"
 	"github.com/akhilnasimk/SS_backend/internal/controllers"
 	"github.com/akhilnasimk/SS_backend/internal/middlewares"
-	"github.com/akhilnasimk/SS_backend/internal/repositories"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/sql"
 	"github.com/akhilnasimk/SS_backend/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterUserRoutes(rg *gin.RouterGroup) {
 	// Repository
-	userRepo := repositories.NewUserReposetory(*config.DB)
+	userRepo := sql.NewUserReposetory(*config.DB)
 	// Service
 	userService := services.NewUserService(userRepo)
 	// Controller

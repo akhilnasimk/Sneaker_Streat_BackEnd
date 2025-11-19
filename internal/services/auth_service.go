@@ -9,7 +9,7 @@ import (
 	"github.com/akhilnasimk/SS_backend/internal/dto"
 	"github.com/akhilnasimk/SS_backend/internal/helpers"
 	"github.com/akhilnasimk/SS_backend/internal/models"
-	"github.com/akhilnasimk/SS_backend/internal/repositories"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 	"github.com/akhilnasimk/SS_backend/utils/jwt"
 	"github.com/google/uuid"
 )
@@ -24,12 +24,12 @@ type AuthService interface {
 }
 
 type authService struct {
-	userRepo  repositories.UserRepository
+	userRepo  interfaces.UserRepository
 	JwtSecret []byte
-	tokenRepo repositories.TokenRepository
+	tokenRepo interfaces.TokenRepository
 }
 
-func NewAuthService(repo repositories.UserRepository, tokenRepo repositories.TokenRepository) AuthService {
+func NewAuthService(repo interfaces.UserRepository, tokenRepo interfaces.TokenRepository) AuthService {
 	return &authService{
 		userRepo:  repo,
 		tokenRepo: tokenRepo,
@@ -154,7 +154,6 @@ func (S *authService) RefreshTokens(token string) (string, string, error) {
 
 	return newAccess, newRefresh, nil
 }
-
 
 func (S *authService) ForgotPassword(email string) (*models.User, error) {
 

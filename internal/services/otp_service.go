@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/akhilnasimk/SS_backend/internal/models"
-	"github.com/akhilnasimk/SS_backend/internal/repositories"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 	"github.com/akhilnasimk/SS_backend/utils/otp"
 	"github.com/google/uuid"
 )
@@ -16,11 +16,11 @@ type OtpService interface {
 }
 
 type otpService struct {
-	otpRepo      repositories.OtpRepository
+	otpRepo      interfaces.OtpRepository
 	EmailService EmailService
 }
 
-func NewOtpService(repo repositories.OtpRepository, ES EmailService) OtpService {
+func NewOtpService(repo interfaces.OtpRepository, ES EmailService) OtpService {
 	return &otpService{
 		otpRepo:      repo,
 		EmailService: ES,

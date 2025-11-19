@@ -7,4 +7,5 @@ type ProductImage struct {
 	ProductID uuid.UUID `gorm:"type:uuid;index"`
 	URL       string    `json:"url"`
 	AltText   string    `json:"alt_text"`
+	//preoiprity 
 }

@@ -3,16 +3,16 @@ package routes
 import (
 	"github.com/akhilnasimk/SS_backend/internal/config"
 	"github.com/akhilnasimk/SS_backend/internal/controllers"
-	"github.com/akhilnasimk/SS_backend/internal/repositories"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/sql"
 	"github.com/akhilnasimk/SS_backend/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
 func AuthRoutes(rg *gin.RouterGroup) {
 	//All Repo that AuthController depends on
-	userrepo := repositories.NewUserReposetory(*config.DB)   //creating new user repo
-	tockenRepo := repositories.NewTokenRepository(config.DB) //creating a new Token repo
-	otpRepo := repositories.NewOtpRepository(config.DB)      //creating a new Otp repo
+	userrepo := sql.NewUserReposetory(*config.DB)   //creating new user repo
+	tockenRepo := sql.NewTokenRepository(config.DB) //creating a new Token repo
+	otpRepo := sql.NewOtpRepository(config.DB)      //creating a new Otp repo
 
 	//ALL services that Auth controller depends on
 	Authservice := services.NewAuthService(userrepo, tockenRepo) //auth service need userRepo and token repo

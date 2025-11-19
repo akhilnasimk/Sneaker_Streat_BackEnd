@@ -1,25 +1,19 @@
-package repositories
+package sql
 
 import (
 	"time"
 
 	"github.com/akhilnasimk/SS_backend/internal/models"
+	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
-
-type TokenRepository interface {
-	SaveRefreshToken(token *models.RefreshToken) error
-	FindByToken(token string) (*models.RefreshToken, error)
-	RevokeToken(token string) error
-	UpdateToken(id uuid.UUID, newToken string, expiresAt time.Time) error
-}
 
 type tokenRepository struct {
 	db *gorm.DB
 }
 
-func NewTokenRepository(db *gorm.DB) TokenRepository {
+func NewTokenRepository(db *gorm.DB) interfaces.TokenRepository {
 	return &tokenRepository{db: db}
 }
 
@@ -61,4 +55,4 @@ func (r *tokenRepository) UpdateToken(userID uuid.UUID, newToken string, expires
 			"expires_at": expiresAt,
 			"revoked_at": nil,
 		}).Error
-}	
+}
