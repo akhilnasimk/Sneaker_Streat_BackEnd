@@ -6,6 +6,7 @@ import (
 
 	"github.com/akhilnasimk/SS_backend/internal/dto"
 	"github.com/akhilnasimk/SS_backend/internal/services"
+	"github.com/akhilnasimk/SS_backend/utils/response"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -128,4 +129,47 @@ func (c *UserController) GetAllUsers(ctx *gin.Context) {
 		"success": true,
 		"data":    users,
 	})
+}
+
+func (c *UserController) GetSingleUser(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	if id == "" {
+		ctx.JSON(400, response.Failure("User Id not received", "missing id in params"))
+		return
+	}
+
+	cont := ctx.Request.Context()
+	user, err := c.UserService.GetUserById(cont, id)
+	if err != nil {
+		ctx.JSON(404, response.Failure("Failed to get user", err.Error()))
+		return
+	}
+
+	ctx.JSON(200, response.Success("User has been found", user))
+}
+
+func (c *UserController) AdminUserUpdate(ctx *gin.Context) {
+	// 1. Get ID from URL params
+	idParam := ctx.Param("id")
+	if idParam == "" {
+		ctx.JSON(400, response.Failure("user ID is required", nil))
+		return
+	}
+
+	// 3. Bind request body to DTO
+	var updates dto.PatchUserAdminReq
+	if err := ctx.ShouldBindJSON(&updates); err != nil {
+		ctx.JSON(400, response.Failure("binding failed", err))
+		return
+	}
+
+	// 4. Call service layer
+	if err := c.UserService.AdminUserUpdate(ctx.Request.Context(), updates, idParam); err != nil {
+		ctx.JSON(400, response.Failure("update failed", err))
+		return
+	}
+
+	// 5. Success response
+	ctx.JSON(200, response.Success("user has been updated", nil))
 }

@@ -74,105 +74,107 @@ func (r *AuthController) Register(ctx *gin.Context) {
 func (r *AuthController) Login(ctx *gin.Context) {
 	var loginReq dto.LoginReq
 
-	// ---------------------------
-	// 1. Bind Input
-	// ---------------------------
 	if err := ctx.ShouldBindJSON(&loginReq); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid request body",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	// ---------------------------
 	// 2. Authenticate
-	// ---------------------------
 	user, err := r.authService.Login(loginReq)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
-		})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	// ---------------------------
 	// 3. Generate Access Token
-	// ---------------------------
 	accessToken, err := jwt.GenerateAccess(user.ID, user.UserName, user.Email, *user.UserRole)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to generate access token",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
 		return
 	}
 
-	// ---------------------------
-	// 4. Refresh Token
-	// ---------------------------
+	// 4. Generate Refresh Token
 	refreshToken, err := r.authService.GenerateAndStoreRefreshToken(user.ID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to generate refresh token",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
 		return
 	}
 
-	// ---------------------------
-	// 5. Set HTTP-Only Cookie
-	// ---------------------------
+	// 5. Set HTTP-Only Cookies
+	// Short-lived Access Token cookie (optional, can also stay in memory)
+	ctx.SetCookie(
+		"access_token",
+		accessToken,
+		15*60, // 15 minutes
+		"/",
+		"",
+		false, // secure=false in dev, true in production
+		true,  // httpOnly
+	)
+
+	// Long-lived Refresh Token cookie
 	ctx.SetCookie(
 		"refresh_token",
 		refreshToken,
 		7*24*60*60, // 7 days
 		"/",
 		"",
-		false, // secure=false in localhost, true in production
-		true,  // httpOnly
+		false,
+		true,
 	)
 
-	// ---------------------------
-	// 6. Response
-	// ---------------------------
+	// Response
+	// Send user info in response
+	userInfo := gin.H{
+		"id":       user.ID,
+		"username": user.UserName,
+		"email":    user.Email,
+		"role":     user.UserRole,
+		"image":    user.Image,
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"message":      "login successful",
-		"access_token": accessToken,
+		"message": "login successful",
+		"user":    userInfo,
 	})
 }
 
 func (r *AuthController) RefreshToken(ctx *gin.Context) {
 	refresh, err := ctx.Cookie("refresh_token")
-	if err != nil {
-		ctx.JSON(401, gin.H{
-			"message": "cookie failed ",
-			"error":   err.Error(),
-		})
-		return
-	}
-	access, refresh, err := r.authService.RefreshTokens(refresh)
-	if err != nil {
-		ctx.JSON(401, gin.H{
-			"message": "refresh failed  failed ",
-			"error":   err.Error(),
-		})
+	if err != nil || refresh == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Refresh token missing", "error": err.Error()})
 		return
 	}
 
+	// Generate new access and refresh tokens
+	accessToken, newRefreshToken, err := r.authService.RefreshTokens(refresh)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Failed to refresh tokens", "error": err.Error()})
+		return
+	}
+
+	// Set new cookies
 	ctx.SetCookie(
-		"refresh_token", // name
-		refresh,         // value
-		604800,          // 	7 Days
-		"/",             // path
-		"",              // domain (empty = current domain)
-		true,            // secure (true = HTTPS only)
-		true,            // httpOnly (not accessible via JS)
+		"access_token",
+		accessToken,
+		15*60, // 15 minutes
+		"/",
+		"",
+		false,
+		true,
 	)
 
-	ctx.JSON(200, gin.H{
-		"message": "refresh token is fine",
-		"access":  access,
-		"refresh": refresh,
-	})
+	ctx.SetCookie(
+		"refresh_token",
+		newRefreshToken,
+		7*24*60*60,
+		"/",
+		"",
+		false,
+		true,
+	)
 
+	ctx.JSON(http.StatusOK, gin.H{"message": "Tokens refreshed"})
 }
 
 // forgot passwrd with the otp sending

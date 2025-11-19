@@ -105,3 +105,38 @@ func (r *userRepository) GetAllUsersPaginated(limit, offset int) ([]models.User,
 
 	return users, total, nil
 }
+
+// func (r *userRepository) PatchUserData(userID uuid.UUID, changes dto.PatchUserAdminReq) error {
+// 	updates := make(map[string]interface{})
+
+// 	if changes.UserName != nil {
+// 		updates["user_name"] = *changes.UserName
+// 	}
+// 	if changes.IsAdmin != nil {
+// 		updates["is_admin"] = *changes.IsAdmin
+// 	}
+// 	if changes.IsBlocked != nil {
+// 		updates["is_blocked"] = *changes.IsBlocked
+// 	}
+// 	if changes.UserRole != nil {
+// 		updates["user_role"] = changes.UserRole
+// 	}
+// 	if changes.Image != nil {
+// 		updates["image"] = changes.Image
+// 	}
+
+// 	if len(updates) == 0 {
+// 		return nil // nothing to update
+// 	}
+
+// 	// Update in DB and ensure the user exists
+// 	result := r.DB.Model(&models.User{}).Where("id = ?", userID).Updates(updates)
+// 	if result.Error != nil {
+// 		return result.Error
+// 	}
+// 	if result.RowsAffected == 0 {
+// 		return fmt.Errorf("user not found")
+// 	}
+
+// 	return nil
+// }

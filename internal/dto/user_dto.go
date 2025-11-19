@@ -35,3 +35,11 @@ type AdminUserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	UserRole  *string   `json:"role"`
 }
+
+type PatchUserAdminReq struct {
+	UserName  *string `json:"username,omitempty"`
+	IsAdmin   *bool   `json:"is_admin,omitempty"`
+	IsBlocked *bool   `json:"is_blocked,omitempty"`
+	UserRole  *string `json:"role,omitempty"`
+	Image     *string `json:"image,omitempty"`
+}
