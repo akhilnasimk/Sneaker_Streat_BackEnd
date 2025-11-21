@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/akhilnasimk/SS_backend/internal/config"
 	"github.com/akhilnasimk/SS_backend/internal/controllers"
+	"github.com/akhilnasimk/SS_backend/internal/middlewares"
 	"github.com/akhilnasimk/SS_backend/internal/repositories/sql"
 	"github.com/akhilnasimk/SS_backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -19,8 +20,13 @@ func RegisterProductRoutes(rg *gin.RouterGroup) {
 
 	// Public product browsing
 	rg.GET("/", ProductController.GetAllProducts)
-	// rg.GET("/:id", GetProductByID)
-	// // Optional filters
-	// rg.GET("/category/:id", GetProductsByCategory)
-	// rg.GET("/search/:query", SearchProducts)
+	rg.GET("/:id", ProductController.GetProductById)
+
+	//all the route that onyl accessable for the admin
+	admin := rg.Group("/admin")
+	admin.Use(middlewares.AuthorizeMiddleware(), middlewares.AdminAuth())
+	{
+		admin.POST("/", ProductController.UploadProduct)
+	}
+
 }

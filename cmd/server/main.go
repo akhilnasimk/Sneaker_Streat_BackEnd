@@ -12,6 +12,7 @@ func main() {
 	config.LoadConfig()
 	config.ConnectDB()         // concecting db
 	migrations.RunMigrations() // running the automigrations
+	config.InitCloudinary()    //cloudinery initialization 
 
 	//setting up the server
 	baseRoute := gin.Default()

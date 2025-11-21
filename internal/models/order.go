@@ -7,7 +7,7 @@ import (
 )
 
 type Order struct {
-	ID              uuid.UUID   `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	ID              uuid.UUID   `gorm:"type:uuid;default:uuid_generate_v4();primaryKey;index" json:"id"`
 	UserID          uuid.UUID   `gorm:"type:uuid;not null;index" json:"user_id"`
 	User            *User       `gorm:"foreignKey:UserID" json:"-"`
 	TotalAmount     float64     `json:"total_amount"`
