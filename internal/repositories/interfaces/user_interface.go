@@ -12,4 +12,5 @@ type UserRepository interface {
 	PatchPasswordByEmail(email string, hashedPassword string) error
 	PatchUser(id uuid.UUID, updates map[string]interface{}) error
 	GetAllUsersPaginated(limit, offset int) ([]models.User, int64, error)
+	ToggleBlock(id uuid.UUID) error
 }

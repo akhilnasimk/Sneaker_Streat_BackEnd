@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/akhilnasimk/SS_backend/internal/config"
-	"github.com/akhilnasimk/SS_backend/internal/middlewares"
 	"github.com/akhilnasimk/SS_backend/internal/migrations"
 	"github.com/akhilnasimk/SS_backend/internal/routes"
 
@@ -16,8 +15,6 @@ func main() {
 
 	//setting up the server
 	baseRoute := gin.Default()
-	baseRoute.Use(middlewares.CORSMiddleware())
-	baseRoute.Use(middlewares.RateLimitMiddleware())
 
 	routes.SetupRoutes(baseRoute)
 

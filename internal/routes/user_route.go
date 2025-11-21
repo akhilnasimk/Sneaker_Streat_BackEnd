@@ -39,10 +39,10 @@ func RegisterUserRoutes(rg *gin.RouterGroup) {
 		admin := protected.Group("/admin")
 		admin.Use(middlewares.AdminAuth()) // Ensure role == "admin"
 		{
-			admin.GET("/all-users", userController.GetAllUsers)       // Get all users
-			admin.GET("/user/:id", userController.GetSingleUser)      // Get single user details
-			admin.PATCH("/user/:id", userController.AdminUserUpdate) // Update user info or role
-			admin.PUT("/users/:id/block", nil)                        // Block user account
+			admin.GET("/all-users", userController.GetAllUsers)             // Get all users
+			admin.GET("/user/:id", userController.GetSingleUser)            // Get single user details
+			admin.PATCH("/user/:id", userController.AdminUserUpdate)        // Update user info or role
+			admin.PATCH("/user/:id/block", userController.ToggleUserStatus) // Block user account
 		}
 	}
 }

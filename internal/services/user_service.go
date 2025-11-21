@@ -16,6 +16,7 @@ type UserService interface {
 	GetAllUserData(limit, offset int) ([]dto.AdminUserResponse, error)
 	GetUserById(ctx context.Context, stringID string) (dto.AdminUserResponse, error)
 	AdminUserUpdate(ctx context.Context, req dto.PatchUserAdminReq, idstring string) error
+	ToggleUserStatus(idstring string) error
 }
 
 type userService struct {
@@ -169,9 +170,6 @@ func (s *userService) AdminUserUpdate(ctx context.Context, req dto.PatchUserAdmi
 	if req.IsAdmin != nil {
 		updates["is_admin"] = *req.IsAdmin
 	}
-	if req.IsBlocked != nil {
-		updates["is_blocked"] = *req.IsBlocked
-	}
 	if req.UserRole != nil {
 		updates["user_role"] = req.UserRole
 	}
@@ -184,4 +182,17 @@ func (s *userService) AdminUserUpdate(ctx context.Context, req dto.PatchUserAdmi
 	}
 
 	return s.userRepo.PatchUser(id, updates)
+}
+
+func (s *userService) ToggleUserStatus(idstring string) error {
+	if idstring == "" {
+		return fmt.Errorf("no id recived")
+	}
+	id := helpers.StringToUUID(idstring)
+
+	if err := s.userRepo.ToggleBlock(id); err != nil {
+		return err
+	}
+
+	return nil
 }

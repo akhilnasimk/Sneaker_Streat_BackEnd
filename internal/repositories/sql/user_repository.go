@@ -3,6 +3,7 @@ package sql
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/akhilnasimk/SS_backend/internal/models"
 	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
@@ -106,37 +107,44 @@ func (r *userRepository) GetAllUsersPaginated(limit, offset int) ([]models.User,
 	return users, total, nil
 }
 
-// func (r *userRepository) PatchUserData(userID uuid.UUID, changes dto.PatchUserAdminReq) error {
-// 	updates := make(map[string]interface{})
+// we use transaction because if not both happend it become very bad that blocked user can still refresh tokens
+func (r *userRepository) ToggleBlock(id uuid.UUID) error {
+	return r.DB.Transaction(func(tx *gorm.DB) error {
 
-// 	if changes.UserName != nil {
-// 		updates["user_name"] = *changes.UserName
-// 	}
-// 	if changes.IsAdmin != nil {
-// 		updates["is_admin"] = *changes.IsAdmin
-// 	}
-// 	if changes.IsBlocked != nil {
-// 		updates["is_blocked"] = *changes.IsBlocked
-// 	}
-// 	if changes.UserRole != nil {
-// 		updates["user_role"] = changes.UserRole
-// 	}
-// 	if changes.Image != nil {
-// 		updates["image"] = changes.Image
-// 	}
+		var user models.User
+		if err := tx.First(&user, "id = ?", id).Error; err != nil {
+			return err
+		}
+		if *user.UserRole == "admin" {
+			return fmt.Errorf("you cant block the admin ")
+		}
+		newStatus := !user.IsBlocked
 
-// 	if len(updates) == 0 {
-// 		return nil // nothing to update
-// 	}
+		// Update status
+		if err := tx.Model(&models.User{}).
+			Where("id = ?", id).
+			Update("is_blocked", newStatus).Error; err != nil {
+			return err
+		}
 
-// 	// Update in DB and ensure the user exists
-// 	result := r.DB.Model(&models.User{}).Where("id = ?", userID).Updates(updates)
-// 	if result.Error != nil {
-// 		return result.Error
-// 	}
-// 	if result.RowsAffected == 0 {
-// 		return fmt.Errorf("user not found")
-// 	}
+		now := time.Now()
 
-// 	return nil
-// }
+		if newStatus {
+			// BLOCK USER → revoke only VALID + ACTIVE tokens
+			if err := tx.Model(&models.RefreshToken{}).
+				Where("user_id = ? AND revoked_at IS NULL AND expires_at > ?", id, now).
+				Update("revoked_at", now).Error; err != nil {
+				return err
+			}
+		} else {
+			// UNBLOCK USER → (OPTIONAL) restore only NON-EXPIRED revoked tokens
+			if err := tx.Model(&models.RefreshToken{}).
+				Where("user_id = ? AND expires_at > ?", id, now).
+				Update("revoked_at", nil).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}

@@ -173,3 +173,19 @@ func (c *UserController) AdminUserUpdate(ctx *gin.Context) {
 	// 5. Success response
 	ctx.JSON(200, response.Success("user has been updated", nil))
 }
+
+func (c *UserController) ToggleUserStatus(ctx *gin.Context) {
+
+	idParam := ctx.Param("id")
+	if idParam == "" {
+		ctx.JSON(400, response.Failure("user ID is required", nil))
+		return
+	}
+
+	if err := c.UserService.ToggleUserStatus(idParam); err != nil {
+		ctx.JSON(400, response.Failure("failed to toggle user status", err.Error()))
+		return
+	}
+
+	ctx.JSON(200, response.Success("user status toggled successfully", nil))
+}
