@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/akhilnasimk/SS_backend/internal/dto"
+	"github.com/akhilnasimk/SS_backend/internal/helpers"
 	"github.com/akhilnasimk/SS_backend/internal/services"
 	"github.com/akhilnasimk/SS_backend/utils/response"
 	"github.com/gin-gonic/gin"
@@ -64,13 +66,14 @@ func (R *ProductController) GetProductById(ctx *gin.Context) {
 	product, err := R.PService.GetProductById(id)
 
 	if err != nil {
-		ctx.JSON(400, response.Failure("failed to get the product", err))
+		ctx.JSON(400, response.Failure("failed to get the product", err.Error()))
+		return
 	}
 
 	ctx.JSON(200, response.Success("product has fetched", product))
 }
 
-// Uploading product withn cloudinery  
+// Uploading product withn cloudinery
 func (c *ProductController) UploadProduct(ctx *gin.Context) {
 	// fmt.Println("Content-Type:", ctx.ContentType())
 
@@ -133,4 +136,108 @@ func (c *ProductController) UploadProduct(ctx *gin.Context) {
 
 	resp := dto.ToProductResponse(product)
 	ctx.JSON(http.StatusOK, response.Success("product uploaded successfully", resp))
+}
+
+func (c *ProductController) GetAllCategory(ctx *gin.Context) {
+
+	categories, err := c.PService.GetAllCategory()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, response.Failure("failed to fetch categories", err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, response.Success("categories fetched successfully", categories))
+}
+
+func (c *ProductController) UpdateProduct(ctx *gin.Context) {
+	// Parse product ID from URL
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, response.Failure("Invalid product ID", err.Error()))
+		return
+	}
+
+	// Parse multipart form (32 MB)
+	if err := ctx.Request.ParseMultipartForm(32 << 20); err != nil {
+		ctx.JSON(http.StatusBadRequest, response.Failure("Failed to parse form data", err.Error()))
+		return
+	}
+
+	// Bind other form fields into DTO
+	var req dto.UpdateProductRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, response.Failure("Invalid request data", err.Error()))
+		return
+	}
+	// fmt.Println("update req (after bind):", req)
+
+	//  Get multipart form (for files and raw values)
+	form := ctx.Request.MultipartForm
+	if form == nil {
+		ctx.JSON(http.StatusBadRequest, response.Failure("Multipart form not found", nil))
+		return
+	}
+
+	// fmt.Printf("multipart form keys: %+v\n", form.Value)
+
+	// Extract new_images files (if any)
+	// Explicitly guard accesses to form.File to avoid staticcheck nil warnings
+	if form.File != nil {
+		if files, exists := form.File["new_images"]; exists {
+			req.NewImages = files
+			// fmt.Printf("new_images count: %d\n", len(files))
+		}
+	}
+
+	var keepRaw []string
+	hasPlain := false
+	hasBracket := false
+
+	// Guard form.Value as well (map might be nil)
+	if form.Value != nil {
+		if v, ok := form.Value["keep_images"]; ok {
+			keepRaw = append(keepRaw, v...)
+			hasPlain = true
+		}
+		if v, ok := form.Value["keep_images[]"]; ok {
+			keepRaw = append(keepRaw, v...)
+			hasBracket = true
+		}
+	}
+
+	keepPresent := hasPlain || hasBracket
+
+	// filter blank entries and trim spaces
+	filtered := make([]string, 0, len(keepRaw))
+	for _, s := range keepRaw {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			filtered = append(filtered, s)
+		}
+	}
+
+	if !keepPresent {
+		// key not present at all -> don't touch images
+		req.KeepImages = nil
+		fmt.Println("keep_images key not present -> will not modify images")
+	} else {
+		req.KeepImages = filtered
+	}
+
+	// Validate request  - check all the essenaila need - in helpers
+	if err := helpers.ValidateUpdateProductRequest(req); err != nil {
+		ctx.JSON(http.StatusBadRequest, response.Failure("Validation failed", err.Error()))
+		return
+	}
+	fmt.Println("final req before service call:", req)
+
+	// Call service
+	if err := c.PService.UpdateProduct(id, req); err != nil {
+		ctx.JSON(http.StatusInternalServerError, response.Failure("Failed to update product", err.Error()))
+		return
+	}
+
+	//  Success response
+	ctx.JSON(http.StatusOK, response.Success("Product updated successfully", nil))
 }

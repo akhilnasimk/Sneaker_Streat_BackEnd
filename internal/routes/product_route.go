@@ -21,12 +21,14 @@ func RegisterProductRoutes(rg *gin.RouterGroup) {
 	// Public product browsing
 	rg.GET("/", ProductController.GetAllProducts)
 	rg.GET("/:id", ProductController.GetProductById)
+	rg.GET("/categories", ProductController.GetAllCategory)
 
 	//all the route that onyl accessable for the admin
 	admin := rg.Group("/admin")
 	admin.Use(middlewares.AuthorizeMiddleware(), middlewares.AdminAuth())
 	{
 		admin.POST("/", ProductController.UploadProduct)
+		admin.PUT("/:id", ProductController.UpdateProduct)
 	}
 
 }

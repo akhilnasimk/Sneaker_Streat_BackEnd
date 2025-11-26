@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"mime/multipart"
 	"time"
 
 	"github.com/akhilnasimk/SS_backend/internal/models"
@@ -53,4 +54,28 @@ func ToProductResponse(p models.Product) ProductResponse {
 		CreatedAt:   p.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   p.UpdatedAt.Format(time.RFC3339),
 	}
+}
+
+type CategoryResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"Name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+
+
+type UpdateProductRequest struct {
+	Name        string `form:"name" binding:"required"`
+	Description string `form:"description"`
+	Price       int64  `form:"price" binding:"required,gt=0"`
+	StockCount  int    `form:"stock_count" binding:"required,gte=0"`
+	CategoryID  string `form:"category_id" binding:"required"`
+
+	// URLs that admin wants to KEEP
+	// This won't auto-bind from form, we'll set it manually
+	KeepImages []string
+
+	// New files the admin uploads
+	// This won't auto-bind from form, we'll set it manually
+	NewImages []*multipart.FileHeader
 }

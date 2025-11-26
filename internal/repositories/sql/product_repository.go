@@ -1,6 +1,8 @@
 package sql
 
 import (
+	"fmt"
+
 	"github.com/akhilnasimk/SS_backend/internal/models"
 	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 	"github.com/google/uuid"
@@ -106,4 +108,71 @@ func (r *productsRepository) CreateProductWithImages(product models.Product, ima
 
 	product.Images = images
 	return product, nil
+}
+
+func (r *productsRepository) FindAllCategory() ([]models.Category, error) {
+	var categories []models.Category
+	resp := r.DB.Find(&categories)
+	if resp.Error != nil {
+		return categories, resp.Error
+	}
+	return categories, nil
+}
+
+// find by id for helper to anothermethode in hte repo
+func (r *productsRepository) FindById(id uuid.UUID) (*models.Product, error) {
+	var product models.Product
+	// Preload existing images
+	err := r.DB.Preload("Images").Where("id = ?", id).First(&product).Error
+	if err != nil {
+		return nil, err
+	}
+	return &product, nil
+}
+
+func (r *productsRepository) UpdateProduct(product *models.Product) error {
+	// Use Session to ensure associations are saved
+	return r.DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(product).Error
+}
+
+func (r *productsRepository) DeleteImagesNotIn(productID uuid.UUID, urlsToKeep []string) ([]string, error) {
+	var toDelete []models.ProductImage
+	var query *gorm.DB
+
+	if len(urlsToKeep) == 0 {
+		query = r.DB.Where("product_id = ?", productID)
+	} else {
+		query = r.DB.Where("product_id = ? AND url NOT IN ?", productID, urlsToKeep)
+	}
+
+	if err := query.Find(&toDelete).Error; err != nil {
+		return nil, err
+	}
+	if len(toDelete) == 0 {
+		return []string{}, nil
+	}
+	fmt.Println("from the update:", toDelete)
+	ids := make([]uuid.UUID, 0, len(toDelete))
+	urls := make([]string, 0, len(toDelete))
+	for _, img := range toDelete {
+		ids = append(ids, img.ID)
+		urls = append(urls, img.URL)
+	}
+
+	// Use explicit tx delete to be safe
+	tx := r.DB.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	if err := tx.Where("id IN ?", ids).Delete(&models.ProductImage{}).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	return urls, nil
 }
