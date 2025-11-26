@@ -19,7 +19,8 @@ func RegisterProductRoutes(rg *gin.RouterGroup) {
 	ProductController := controllers.NewProductController(Productservice)
 
 	// Public product browsing
-	rg.GET("/", ProductController.GetAllProducts)
+	rg.GET("/", middlewares.OptionalAuth(), ProductController.GetAllProducts)//using a optional auth for differensiating the non autherized user and admin or autherized user for showing the products
+
 	rg.GET("/:id", ProductController.GetProductById)
 	rg.GET("/categories", ProductController.GetAllCategory)
 
@@ -27,8 +28,11 @@ func RegisterProductRoutes(rg *gin.RouterGroup) {
 	admin := rg.Group("/admin")
 	admin.Use(middlewares.AuthorizeMiddleware(), middlewares.AdminAuth())
 	{
-		admin.POST("/", ProductController.UploadProduct)
+		admin.POST("", ProductController.UploadProduct)
 		admin.PUT("/:id", ProductController.UpdateProduct)
+		admin.PATCH("/:id/toggle-availability", ProductController.ToggleProductAvailability)
+		admin.DELETE("/:id", ProductController.DeleteProduct)
+		admin.PATCH("/undelete/:id")
 	}
 
 }

@@ -16,11 +16,13 @@ import (
 )
 
 type ProductsService interface {
-	GetAllProducts(page, limit int, categoryID string, search string, minPrice, maxPrice int64) ([]models.Product, int64, error)
+	GetAllProducts(page, limit int, categoryID string, search string, minPrice, maxPrice int64, userRole string) ([]models.Product, int64, error)
 	GetProductById(idstring string) (dto.ProductResponse, error)
 	CreateProduct(name, description string, price int64, stockCount int, categoryID uuid.UUID, files []*multipart.FileHeader) (models.Product, error)
 	GetAllCategory() ([]dto.CategoryResponse, error)
 	UpdateProduct(id uuid.UUID, req dto.UpdateProductRequest) error
+	ToggleProductAvailability(idString string) error
+	DeleteProduct(idString string) error
 }
 
 type productsService struct {
@@ -33,8 +35,7 @@ func NewProductsService(repo interfaces.ProductsRepository) ProductsService {
 	}
 }
 
-func (s *productsService) GetAllProducts(page, limit int, categoryID string, search string, minPrice, maxPrice int64) ([]models.Product, int64, error) {
-
+func (s *productsService) GetAllProducts(page, limit int, categoryID string, search string, minPrice, maxPrice int64, userRole string) ([]models.Product, int64, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -44,7 +45,10 @@ func (s *productsService) GetAllProducts(page, limit int, categoryID string, sea
 
 	offset := (page - 1) * limit
 
-	products, total, err := s.productRepo.GetAllProducts(limit, offset, categoryID, search, minPrice, maxPrice)
+	// Admin sees everything (including deleted), others see only active non-deleted
+	includeDeleted := userRole == "admin"
+
+	products, total, err := s.productRepo.GetAllProducts(limit, offset, categoryID, search, minPrice, maxPrice, includeDeleted)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -223,6 +227,32 @@ func (s *productsService) UpdateProduct(id uuid.UUID, req dto.UpdateProductReque
 	// Save everything to database
 	if err := s.productRepo.UpdateProduct(product); err != nil {
 		return fmt.Errorf("failed to update product: %w", err)
+	}
+
+	return nil
+}
+
+func (s *productsService) ToggleProductAvailability(idString string) error {
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		return fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	if err := s.productRepo.ToggleActive(id); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *productsService) DeleteProduct(idString string) error {
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		return fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	if err := s.productRepo.DeleteProduct(id); err != nil {
+		return err
 	}
 
 	return nil

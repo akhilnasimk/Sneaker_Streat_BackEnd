@@ -33,4 +33,3 @@ func AuthorizeMiddleware() gin.HandlerFunc {
 		ctx.Next()
 	}
 }
-

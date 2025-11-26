@@ -24,19 +24,16 @@ func NewProductController(service services.ProductsService) ProductController {
 	}
 }
 
-func (R *ProductController) GetAllProducts(ctx *gin.Context) {
+func (c *ProductController) GetAllProducts(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "10"))
 
-	// New filters
 	categoryID := ctx.Query("category_id")
 	search := ctx.Query("search")
 	minPriceStr := ctx.Query("min_price")
 	maxPriceStr := ctx.Query("max_price")
 
 	var minPrice, maxPrice int64
-	var _ = minPriceStr
-	var _ = maxPriceStr
 
 	if minPriceStr != "" {
 		minPrice, _ = strconv.ParseInt(minPriceStr, 10, 64)
@@ -46,7 +43,15 @@ func (R *ProductController) GetAllProducts(ctx *gin.Context) {
 		maxPrice, _ = strconv.ParseInt(maxPriceStr, 10, 64)
 	}
 
-	products, total, err := R.PService.GetAllProducts(page, limit, categoryID, search, minPrice, maxPrice)
+	// Get user role from context
+	userRole, _ := ctx.Get("UserRole")
+	role := ""
+	if userRole != nil {
+		role = userRole.(string)
+	}
+
+	fmt.Println("the role is :", userRole)
+	products, total, err := c.PService.GetAllProducts(page, limit, categoryID, search, minPrice, maxPrice, role)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -152,11 +157,7 @@ func (c *ProductController) GetAllCategory(ctx *gin.Context) {
 func (c *ProductController) UpdateProduct(ctx *gin.Context) {
 	// Parse product ID from URL
 	idStr := ctx.Param("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, response.Failure("Invalid product ID", err.Error()))
-		return
-	}
+	id := helpers.StringToUUID(idStr)
 
 	// Parse multipart form (32 MB)
 	if err := ctx.Request.ParseMultipartForm(32 << 20); err != nil {
@@ -240,4 +241,42 @@ func (c *ProductController) UpdateProduct(ctx *gin.Context) {
 
 	//  Success response
 	ctx.JSON(http.StatusOK, response.Success("Product updated successfully", nil))
+}
+
+func (c *ProductController) ToggleProductAvailability(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	if err := c.PService.ToggleProductAvailability(id); err != nil {
+		if strings.Contains(err.Error(), "invalid product ID") {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "product not found") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to toggle product availability"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "product availability toggled successfully"})
+}
+
+func (c *ProductController) DeleteProduct(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	if err := c.PService.DeleteProduct(id); err != nil {
+		if strings.Contains(err.Error(), "invalid product ID") {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "product not found") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete product"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "product deleted successfully"})
 }

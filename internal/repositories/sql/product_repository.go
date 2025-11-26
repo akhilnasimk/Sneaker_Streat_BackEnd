@@ -19,14 +19,23 @@ func NewProductsRepository(db gorm.DB) interfaces.ProductsRepository {
 	}
 }
 
-func (R *productsRepository) GetAllProducts(limit int, offset int, categoryID string, search string, minPrice int64, maxPrice int64) ([]models.Product, int64, error) {
-
+func (r *productsRepository) GetAllProducts(limit int, offset int, categoryID string, search string, minPrice int64, maxPrice int64, includeDeleted bool) ([]models.Product, int64, error) {
 	var products []models.Product
 	var total int64
 
-	db := R.DB.Model(&models.Product{}).Where("is_active = ?", true)
+	db := r.DB.Model(&models.Product{})
 
-	// 🔥 Apply filters dynamically
+	// Show deleted products for admin
+	if includeDeleted {
+		db = db.Unscoped() // Include soft-deleted records
+	}
+
+	// Filter by active status (non-admin only)
+	if !includeDeleted {
+		db = db.Where("is_active = ?", true)
+	}
+
+	// Apply filters
 	if categoryID != "" {
 		db = db.Where("category_id = ?", categoryID)
 	}
@@ -110,6 +119,7 @@ func (r *productsRepository) CreateProductWithImages(product models.Product, ima
 	return product, nil
 }
 
+// catogories to map on the front end
 func (r *productsRepository) FindAllCategory() ([]models.Category, error) {
 	var categories []models.Category
 	resp := r.DB.Find(&categories)
@@ -130,49 +140,73 @@ func (r *productsRepository) FindById(id uuid.UUID) (*models.Product, error) {
 	return &product, nil
 }
 
+// product upadation
 func (r *productsRepository) UpdateProduct(product *models.Product) error {
 	// Use Session to ensure associations are saved
 	return r.DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(product).Error
 }
 
+// delete product and related images that is not needed
 func (r *productsRepository) DeleteImagesNotIn(productID uuid.UUID, urlsToKeep []string) ([]string, error) {
 	var toDelete []models.ProductImage
-	var query *gorm.DB
 
-	if len(urlsToKeep) == 0 {
-		query = r.DB.Where("product_id = ?", productID)
-	} else {
-		query = r.DB.Where("product_id = ? AND url NOT IN ?", productID, urlsToKeep)
+	// Build query
+	query := r.DB.Where("product_id = ?", productID)
+	if len(urlsToKeep) > 0 {
+		query = query.Where("url NOT IN ?", urlsToKeep)
 	}
 
-	if err := query.Find(&toDelete).Error; err != nil {
-		return nil, err
+	// Fetch only the fields we need (ID and URL) for better performance
+	if err := query.Select("id", "url").Find(&toDelete).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch images: %w", err)
 	}
+
 	if len(toDelete) == 0 {
 		return []string{}, nil
 	}
-	fmt.Println("from the update:", toDelete)
-	ids := make([]uuid.UUID, 0, len(toDelete))
-	urls := make([]string, 0, len(toDelete))
-	for _, img := range toDelete {
-		ids = append(ids, img.ID)
-		urls = append(urls, img.URL)
+
+	// Extract IDs and URLs in a single loop
+	ids := make([]uuid.UUID, len(toDelete))
+	urls := make([]string, len(toDelete))
+	for i, img := range toDelete {
+		ids[i] = img.ID
+		urls[i] = img.URL
 	}
 
-	// Use explicit tx delete to be safe
-	tx := r.DB.Begin()
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
-
-	if err := tx.Where("id IN ?", ids).Delete(&models.ProductImage{}).Error; err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return nil, err
+	// Delete images
+	if err := r.DB.Where("id IN ?", ids).Delete(&models.ProductImage{}).Error; err != nil {
+		return nil, fmt.Errorf("failed to delete images: %w", err)
 	}
 
 	return urls, nil
+}
+
+func (r *productsRepository) ToggleActive(id uuid.UUID) error {
+	result := r.DB.Model(&models.Product{}).
+		Where("id = ?", id).
+		Update("is_active", gorm.Expr("NOT is_active"))
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to toggle product active status: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("product not found with id: %s", id)
+	}
+
+	return nil
+}
+
+func (r *productsRepository) DeleteProduct(id uuid.UUID) error {
+	result := r.DB.Delete(&models.Product{}, id)
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete product: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("product not found with id: %s", id)
+	}
+
+	return nil
 }

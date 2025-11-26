@@ -19,11 +19,15 @@ func SetupRoutes(r *gin.Engine) {
 	auth := api.Group("/auth")
 	AuthRoutes(auth)
 
-	// Produts route all product and product by Id
+	// Produts route all related to products
 	product := api.Group("/products")
 	RegisterProductRoutes(product)
-
+	//routes that is related to users
 	users := api.Group("/users")
 	RegisterUserRoutes(users)
+
+	//route that are related to the cart service
+	cart := api.Group("/cart")
+	RegisterCartRoutes(cart)
 
 }
