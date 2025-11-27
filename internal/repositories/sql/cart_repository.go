@@ -25,9 +25,9 @@ func (r *cartRepository) FindAllcartItemsOfUser(userID uuid.UUID) (models.Cart, 
 
 	// Preload CartItems and Product for the given user
 	err := r.DB.
-		Preload("CartItems.Product.Images"). // preload images to get first photo
-		Preload("CartItems.Product").        // preload product details
-		Preload("CartItems").                // preload the cart items themselves
+		Preload("CartItems").
+		Preload("CartItems.Product").
+		Preload("CartItems.Product.Images").
 		Where("user_id = ?", userID).
 		First(&cart).Error
 
@@ -86,7 +86,32 @@ func (r *cartRepository) AddItemToCart(userID uuid.UUID, productID uuid.UUID) er
 		if err != nil {
 			return err
 		}
-		
+
 		return nil
 	})
+}
+
+func (r *cartRepository) PatchQuantity(id uuid.UUID, op string) error {
+	switch op {
+	case "inc":
+		return r.DB.Model(&models.CartItem{}).
+			Where("id = ?", id).
+			Update("quantity", gorm.Expr("quantity + 1")).Error
+
+	case "dec":
+		// Prevent quantity from going below 1
+		return r.DB.Model(&models.CartItem{}).
+			Where("id = ?", id).
+			Where("quantity > 1").
+			Update("quantity", gorm.Expr("quantity - 1")).Error
+
+	default:
+		return errors.New("invalid operation")
+	}
+}
+
+func (r *cartRepository) HardDeleteCartItem(id uuid.UUID) error {
+    return r.DB.
+        Where("id = ?", id).
+        Delete(&models.CartItem{}).Error
 }

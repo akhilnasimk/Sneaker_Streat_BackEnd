@@ -11,24 +11,33 @@ import (
 
 func RegisterCartRoutes(rg *gin.RouterGroup) {
 
-	//needed repos
-	cartrepo := sql.NewcartRepository(*config.DB)
-	productRepo := sql.NewProductsRepository(*config.DB)
-	//needed services
-	cartservice := services.NewCartService(cartrepo, productRepo)
-	//needed controllers
-	cartcontroller := controllers.NewCartController(cartservice)
-	// All cart routes should require authentication
-	rg.Use(middlewares.AuthorizeMiddleware())
+	// ---------------------
+	// Repository Layer
+	// ---------------------
+	cartRepo := sql.NewcartRepository(*config.DB)      // Cart repository
+	productRepo := sql.NewProductsRepository(*config.DB) // Product repository (needed to fetch product details)
 
-	//  Get all cart items for current user
-	rg.GET("/", cartcontroller.GetUserCart)
-	// Add a product to cart
-	rg.POST("/:product_id", cartcontroller.AddToCart)
-	// // Update quantity of a cart item
-	// rg.PATCH("/:id", controller.UpdateCartItem)
-	// // Remove a product from cart
-	// rg.DELETE("/:id", controller.RemoveFromCart)
-	// // Optional: Clear entire cart for current user
-	// rg.DELETE("/", controller.ClearCart)
+	// ---------------------
+	// Service Layer
+	// ---------------------
+	cartService := services.NewCartService(cartRepo, productRepo) // Handles cart logic (add, update, delete)
+
+	// ---------------------
+	// Controller Layer
+	// ---------------------
+	cartController := controllers.NewCartController(cartService)
+
+	// ---------------------
+	// Cart Routes (JWT Protected)
+	// ---------------------
+	rg.Use(middlewares.AuthorizeMiddleware()) // Ensure user is authenticated
+	{
+		rg.GET("/", cartController.GetUserCart)                  // Get all cart items for current user
+		rg.POST("/:product_id", cartController.AddToCart)        // Add a product to the cart
+		rg.PATCH("/:item_id", cartController.UpdateCount)        // Increment/decrement quantity of a cart item
+		rg.DELETE("/:cartItemId", cartController.DeleteCartItem) // Remove a product from the cart
+
+		// Optional: Clear entire cart for current user
+		// rg.DELETE("/", cartController.ClearCart)
+	}
 }

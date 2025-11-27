@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/akhilnasimk/SS_backend/internal/dto"
+	"github.com/akhilnasimk/SS_backend/internal/enums"
 	"github.com/akhilnasimk/SS_backend/internal/helpers"
 	"github.com/akhilnasimk/SS_backend/internal/services"
 	"github.com/akhilnasimk/SS_backend/utils/response"
@@ -24,7 +25,7 @@ func NewCartController(cartService services.CartService) *CartController {
 
 // GetUserCart handles GET /cart
 func (c *CartController) GetUserCart(ctx *gin.Context) {
-	// 1️⃣ Get userID from context
+	// Get userID from context
 	userIDValue, exists := ctx.Get("UserID")
 	if !exists {
 		ctx.JSON(http.StatusUnauthorized, response.Failure("User not authenticated", nil))
@@ -37,7 +38,7 @@ func (c *CartController) GetUserCart(ctx *gin.Context) {
 		return
 	}
 
-	// 2️⃣ Call service
+	// Call service
 	cartResponse, err := c.CartService.GetUserCartItems(userID)
 	if err != nil {
 		// If record not found → return empty cart instead of failing
@@ -52,7 +53,7 @@ func (c *CartController) GetUserCart(ctx *gin.Context) {
 		}
 	}
 
-	// 3️⃣ Return success
+	// Return success
 	ctx.JSON(http.StatusOK, response.Success("Cart fetched successfully", cartResponse))
 }
 
@@ -87,4 +88,53 @@ func (c *CartController) AddToCart(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, response.Success("Product added to cart successfully", nil))
+}
+
+func (c *CartController) UpdateCount(ctx *gin.Context) {
+	//  Extract cart item ID
+	cartItemId := ctx.Param("item_id")
+	if cartItemId == "" {
+		ctx.JSON(400, response.Failure("item_id is required", nil))
+		return
+	}
+
+	// Extract op from query
+	opStr := ctx.Query("op")
+	if opStr == "" {
+		ctx.JSON(400, response.Failure("op query parameter is required (inc/dec)", nil))
+		return
+	}
+
+	//  Convert string → enum
+	op := enums.CartOperation(opStr)
+
+	//  Validate enum
+	if !op.IsValid() {
+		ctx.JSON(400, response.Failure("invalid op value (allowed: inc, dec)", nil))
+		return
+	}
+
+	//  Call service
+	if err := c.CartService.IncOrDecCartItem(cartItemId, opStr); err != nil {
+		ctx.JSON(400, response.Failure("failed to update quantity", err.Error()))
+		return
+	}
+
+	// 6️⃣ Success
+	ctx.JSON(200, response.Success("quantity updated", nil))
+}
+
+func (c *CartController) DeleteCartItem(ctx *gin.Context) {
+	id := ctx.Param("cartItemId")
+
+	if id == "" {
+		ctx.JSON(400, response.Failure("missing id as param", nil))
+		return
+	}
+
+	if err := c.CartService.DeleteCartItem(id); err != nil {
+		ctx.JSON(400, response.Failure("failed to delete the cart Items ", err.Error()))
+		return
+	}
+	ctx.JSON(200, response.Success("successfully deleted product", nil))
 }

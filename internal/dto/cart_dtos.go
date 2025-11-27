@@ -8,6 +8,7 @@ import (
 )
 
 type CartItemResponse struct {
+	CartItemID  uuid.UUID `json:"cart_item_id"`
 	ProductID   uuid.UUID `json:"product_id"`
 	ProductName string    `json:"product_name"`
 	Price       float64   `json:"price"`
@@ -41,14 +42,14 @@ func MapCartToCartResponse(cart models.Cart) CartResponse {
 			}
 		}
 
-		fmt.Println("length of the image array is ", (ci.Product.Images))
-
+		// fmt.Println("length of the image array is ", (ci.Product.Images))
 
 		price := float64(ci.Product.Price)
 		total := price * float64(ci.Quantity)
 		grandTotal += total
 
 		items = append(items, CartItemResponse{
+			CartItemID:  ci.ID,
 			ProductID:   ci.Product.ID,
 			ProductName: ci.Product.Name,
 			Price:       price,
@@ -67,4 +68,8 @@ func MapCartToCartResponse(cart models.Cart) CartResponse {
 type AddCartRequest struct {
 	ProductID uuid.UUID `json:"product_id" binding:"required"`
 	Quantity  int       `json:"quantity" binding:"required,min=1"`
+}
+
+type QuantityUpadateReq struct {
+	Operation string `json:"operation"`
 }

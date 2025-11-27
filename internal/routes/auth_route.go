@@ -9,26 +9,36 @@ import (
 )
 
 func AuthRoutes(rg *gin.RouterGroup) {
-	//All Repo that AuthController depends on
-	userrepo := sql.NewUserReposetory(*config.DB)   //creating new user repo
-	tockenRepo := sql.NewTokenRepository(config.DB) //creating a new Token repo
-	otpRepo := sql.NewOtpRepository(config.DB)      //creating a new Otp repo
 
-	//ALL services that Auth controller depends on
-	Authservice := services.NewAuthService(userrepo, tockenRepo) //auth service need userRepo and token repo
-	EmailService := services.NewEmailService()                   //creating a Emailservice so put into Otp service
-	OtpService := services.NewOtpService(otpRepo, EmailService)  //creating otp c with otp Repo and the Email service injected
+	// ---------------------
+	// Repository Layer
+	// ---------------------
+	userRepo := sql.NewUserReposetory(*config.DB)  // User repository
+	tokenRepo := sql.NewTokenRepository(config.DB) // Refresh token repository
+	otpRepo := sql.NewOtpRepository(config.DB)     // OTP repository
 
-	//the controller of the auth Route
-	AuthController := controllers.NewAuthController(Authservice, OtpService) // finally creating with two services auth and otp
+	// ---------------------
+	// Service Layer
+	// ---------------------
+	authService := services.NewAuthService(userRepo, tokenRepo) // Handles register/login/refresh
+	emailService := services.NewEmailService()                  // Used by OTP service
+	otpService := services.NewOtpService(otpRepo, emailService) // OTP generation/validation
 
+	// ---------------------
+	// Controller Layer
+	// ---------------------
+	authController := controllers.NewAuthController(authService, otpService)
+
+	// ---------------------
+	// Public Auth Routes
+	// ---------------------
 	auth := rg.Group("/")
 	{
-		auth.POST("/register", AuthController.Register)
-		auth.POST("/login", AuthController.Login)
-		auth.POST("/refresh", AuthController.RefreshToken)
-		auth.POST("/forgotpassword", AuthController.ForgotPassword)
-		auth.POST("/verify-otp", AuthController.VerifyOTP)
-		auth.POST("/update-password", AuthController.UpdatePassword)
+		auth.POST("/register", authController.Register)              // Register new user
+		auth.POST("/login", authController.Login)                    // Login and get tokens
+		auth.POST("/refresh", authController.RefreshToken)           // Refresh token
+		auth.POST("/forgotpassword", authController.ForgotPassword)  // Send OTP to email
+		auth.POST("/verify-otp", authController.VerifyOTP)           // Verify OTP
+		auth.POST("/update-password", authController.UpdatePassword) // Update password after OTP verification
 	}
 }
