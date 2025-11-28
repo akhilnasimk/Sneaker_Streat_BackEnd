@@ -15,6 +15,7 @@ type CartItemResponse struct {
 	Photo       string    `json:"photo"`
 	Total       float64   `json:"total"`
 	Quantity    int       `json:"quantity"`
+	Catogory    uuid.UUID `json:"catogory"`
 }
 
 type CartResponse struct {
@@ -56,6 +57,7 @@ func MapCartToCartResponse(cart models.Cart) CartResponse {
 			Quantity:    ci.Quantity,
 			Total:       total,
 			Photo:       firstPhoto,
+			Catogory:    ci.Product.CategoryID,
 		})
 	}
 

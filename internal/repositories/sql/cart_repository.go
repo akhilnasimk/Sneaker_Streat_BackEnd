@@ -111,7 +111,7 @@ func (r *cartRepository) PatchQuantity(id uuid.UUID, op string) error {
 }
 
 func (r *cartRepository) HardDeleteCartItem(id uuid.UUID) error {
-    return r.DB.
-        Where("id = ?", id).
-        Delete(&models.CartItem{}).Error
+	return r.DB.
+		Where("id = ?", id).
+		Delete(&models.CartItem{}).Error
 }

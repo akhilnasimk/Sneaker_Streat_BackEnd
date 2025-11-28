@@ -30,4 +30,8 @@ func SetupRoutes(r *gin.Engine) {
 	cart := api.Group("/cart")
 	RegisterCartRoutes(cart)
 
+	//route that are related to wishlist  service
+	wishlist := api.Group("/wishlist")
+	RegisterWishlistRoute(*wishlist)
+
 }
