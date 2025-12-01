@@ -17,4 +17,5 @@ type Order struct {
 	OrderItems      []OrderItem `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"order_items"`
 	CreatedAt       time.Time   `json:"created_at"`
 	UpdatedAt       time.Time   `json:"updated_at"`
+	CancelledAt     *time.Time  `gorm:"default:NULL" json:"cancelled_at"`
 }

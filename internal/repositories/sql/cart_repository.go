@@ -8,6 +8,7 @@ import (
 	"github.com/akhilnasimk/SS_backend/internal/repositories/interfaces"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type cartRepository struct {
@@ -40,56 +41,78 @@ func (r *cartRepository) FindAllcartItemsOfUser(userID uuid.UUID) (models.Cart, 
 
 func (r *cartRepository) AddItemToCart(userID uuid.UUID, productID uuid.UUID) error {
 
-	return r.DB.Transaction(func(tx *gorm.DB) error {
+    return r.DB.Transaction(func(tx *gorm.DB) error {
 
-		//  Check if user already has a cart
-		var cart models.Cart
-		err := tx.Where("user_id = ?", userID).First(&cart).Error
+        // 1️⃣ Check product exists + active + stock available
+        var product models.Product
+        err := tx.
+            Clauses(clause.Locking{Strength: "UPDATE"}). // prevent race conditions
+            Where("id = ? AND deleted_at IS NULL AND is_active = TRUE", productID).
+            First(&product).Error
 
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// No cart → create one
-			newCart := models.Cart{
-				ID:     uuid.New(),
-				UserID: userID,
-			}
+        if err != nil {
+            if errors.Is(err, gorm.ErrRecordNotFound) {
+                return fmt.Errorf("product not found or inactive")
+            }
+            return err
+        }
 
-			if err := tx.Create(&newCart).Error; err != nil {
-				return fmt.Errorf("failed creating cart: %w", err)
-			}
+        // 2️⃣ Check stock
+        if product.StockCount <= 0 {
+            return fmt.Errorf("product out of stock")
+        }
 
-			cart = newCart
-		} else if err != nil {
-			return err
-		}
+        // 3️⃣ Check if user already has a cart
+        var cart models.Cart
+        err = tx.Where("user_id = ?", userID).First(&cart).Error
 
-		// Check if the cart already has this product
-		var cartItem models.CartItem
-		err = tx.Where("cart_id = ? AND product_id = ?", cart.ID, productID).First(&cartItem).Error
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            // Create cart if not exists
+            cart = models.Cart{
+                ID:     uuid.New(),
+                UserID: userID,
+            }
 
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+            if err := tx.Create(&cart).Error; err != nil {
+                return fmt.Errorf("failed creating cart: %w", err)
+            }
 
-			// Insert new cart item
-			newCartItem := models.CartItem{
-				ID:        uuid.New(),
-				CartID:    cart.ID,
-				ProductID: productID,
-				Quantity:  1,
-			}
+        } else if err != nil {
+            return err
+        }
 
-			if err := tx.Create(&newCartItem).Error; err != nil {
-				return fmt.Errorf("failed creating cart item: %w", err)
-			}
+        // 4️⃣ Check if cart already contains this product
+        var cartItem models.CartItem
+        err = tx.Where("cart_id = ? AND product_id = ?", cart.ID, productID).
+            First(&cartItem).Error
 
-			return nil
-		}
+        if errors.Is(err, gorm.ErrRecordNotFound) {
 
-		if err != nil {
-			return err
-		}
+            // Stock is already checked → Add new item
+            newCartItem := models.CartItem{
+                ID:        uuid.New(),
+                CartID:    cart.ID,
+                ProductID: productID,
+                Quantity:  1,
+            }
 
-		return nil
-	})
+            if err := tx.Create(&newCartItem).Error; err != nil {
+                return fmt.Errorf("failed creating cart item: %w", err)
+            }
+
+            return nil
+        }
+
+        if err != nil {
+            return err
+        }
+
+        // 5️⃣ If item already in cart → Do NOT increase quantity here
+        // Patch will handle incrementing + stock checking.
+        return nil
+    })
 }
+
 
 func (r *cartRepository) PatchQuantity(id uuid.UUID, op string) error {
 	switch op {

@@ -2,6 +2,7 @@ package dto
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/akhilnasimk/SS_backend/internal/models"
 	"github.com/google/uuid"
@@ -19,8 +20,11 @@ type CartItemResponse struct {
 }
 
 type CartResponse struct {
-	Items []CartItemResponse `json:"items"`
-	Total float64            `json:"total"` // grand total of all cart items
+	CartId    uuid.UUID          `json:"cart_id"`
+	Items     []CartItemResponse `json:"items"`
+	Total     float64            `json:"total"` // grand total of all cart items
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
 }
 
 // Mapping function helper for returning all cart items
@@ -62,8 +66,11 @@ func MapCartToCartResponse(cart models.Cart) CartResponse {
 	}
 
 	return CartResponse{
-		Items: items,
-		Total: grandTotal,
+		CartId:    cart.ID,
+		Items:     items,
+		Total:     grandTotal,
+		CreatedAt: cart.CreatedAt,
+		UpdatedAt: cart.UpdatedAt,
 	}
 }
 

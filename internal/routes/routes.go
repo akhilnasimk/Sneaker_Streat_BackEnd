@@ -22,6 +22,7 @@ func SetupRoutes(r *gin.Engine) {
 	// Produts route all related to products
 	product := api.Group("/products")
 	RegisterProductRoutes(product)
+
 	//routes that is related to users
 	users := api.Group("/users")
 	RegisterUserRoutes(users)
@@ -33,5 +34,9 @@ func SetupRoutes(r *gin.Engine) {
 	//route that are related to wishlist  service
 	wishlist := api.Group("/wishlist")
 	RegisterWishlistRoute(*wishlist)
+
+	//route that are realted to the orders
+	Order := api.Group("/order")
+	RegisterOrderRoutes(Order)
 
 }
