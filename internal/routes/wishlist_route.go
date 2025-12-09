@@ -26,5 +26,6 @@ func RegisterWishlistRoute(rg gin.RouterGroup) {
 		rg.GET("/", wishController.GetWishlist)
 		rg.POST("/toggle/:product_id", wishController.ToggleWishlist)
 		rg.DELETE("/:product_id", wishController.DeleteWishlistItem)
+		rg.GET("/check/:product-id", wishController.CheckProduct)
 	}
 }

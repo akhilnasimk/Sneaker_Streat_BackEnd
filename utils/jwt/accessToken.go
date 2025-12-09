@@ -17,7 +17,7 @@ func GenerateAccess(userId uuid.UUID, userName string, userEmail string, userRol
 		"UserEmail": userEmail,
 		"UserRole":  userRole,
 		"type":      "access",
-		"exp":       time.Now().Add(time.Minute * 15).Unix(),
+		"exp":       time.Now().Add(time.Minute * 5).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	jwttocken, err := token.SignedString([]byte(secretcode))

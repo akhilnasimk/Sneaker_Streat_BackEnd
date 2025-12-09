@@ -51,6 +51,7 @@ func (r *userRepository) FindByID(id uuid.UUID) (*models.User, error) {
 	if resp.Error != nil {
 		return nil, resp.Error
 	}
+	fmt.Println(user.Phone)
 	return &user, nil
 }
 

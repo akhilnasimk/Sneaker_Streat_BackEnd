@@ -28,7 +28,6 @@ type ProductImageDTO struct {
 	Priority int       `json:"priority"`
 }
 
-
 func ToWishlistDTO(items []models.Wishlist) []WishlistItemDTO {
 	result := make([]WishlistItemDTO, 0)
 
@@ -62,4 +61,13 @@ func ToWishlistDTO(items []models.Wishlist) []WishlistItemDTO {
 	}
 
 	return result
+}
+
+// Response structure
+type WishlistStatusResponse struct {
+	InWishlist bool      `json:"in_wishlist"`
+	Exists     bool      `json:"exists"`
+	Message    string    `json:"message"`
+	WishlistID uuid.UUID `json:"wishlist_id,omitempty"`
+	AddedAt    time.Time `json:"added_at,omitempty"`
 }

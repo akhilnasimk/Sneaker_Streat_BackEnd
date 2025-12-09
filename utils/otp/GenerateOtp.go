@@ -30,5 +30,5 @@ func HashOTP(otp string) (string, error) {
 // VerifyOTP compares input OTP with the hashed OTP from DB
 func VerifyOTPHash(input, hashed string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(input))
-	return err == nil
+	return err == nil	
 }

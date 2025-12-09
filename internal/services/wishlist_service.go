@@ -10,23 +10,27 @@ import (
 	"gorm.io/gorm"
 )
 
-type WishlistService struct {
+type WishlistService interface {
+	GetAllWishlistItems(userID string) ([]dto.WishlistItemDTO, error)
+	DeleteWishlistItem(userID, productID string) error
+	ToggleWishlist(userID, productID string) (string, *models.Wishlist, error)
+	CheckWishlistStatus(userIDStr, productIDStr string) (*dto.WishlistStatusResponse, error)
+}
+
+type wishlistService struct {
 	wishlistRepo interfaces.WishlistRepository
 	productRepo  interfaces.ProductsRepository
 }
 
-func NewWishlistService(
-	wishlistRepo interfaces.WishlistRepository,
-	productRepo interfaces.ProductsRepository,
-) *WishlistService {
-	return &WishlistService{
+func NewWishlistService(wishlistRepo interfaces.WishlistRepository, productRepo interfaces.ProductsRepository) WishlistService {
+	return &wishlistService{
 		wishlistRepo: wishlistRepo,
 		productRepo:  productRepo,
 	}
 }
 
 // ---------- Get All Wishlist ----------
-func (s *WishlistService) GetAllWishlistItems(userID string) ([]dto.WishlistItemDTO, error) {
+func (s *wishlistService) GetAllWishlistItems(userID string) ([]dto.WishlistItemDTO, error) {
 
 	uid := helpers.StringToUUID(userID)
 
@@ -43,7 +47,7 @@ func (s *WishlistService) GetAllWishlistItems(userID string) ([]dto.WishlistItem
 }
 
 // ---------- Delete Wishlist Item ----------
-func (s *WishlistService) DeleteWishlistItem(userID, productID string) error {
+func (s *wishlistService) DeleteWishlistItem(userID, productID string) error {
 	uid := helpers.StringToUUID(userID)
 	pid := helpers.StringToUUID(productID)
 
@@ -65,7 +69,7 @@ func (s *WishlistService) DeleteWishlistItem(userID, productID string) error {
 }
 
 // ---------- Toggle Wishlist ----------
-func (s *WishlistService) ToggleWishlist(userID, productID string) (string, *models.Wishlist, error) {
+func (s *wishlistService) ToggleWishlist(userID, productID string) (string, *models.Wishlist, error) {
 
 	uid := helpers.StringToUUID(userID)
 
@@ -91,4 +95,33 @@ func (s *WishlistService) ToggleWishlist(userID, productID string) (string, *mod
 	}
 
 	return action, item, nil
+}
+
+// CheckWishlistStatus checks if a product is in user's wishlist
+func (s *wishlistService) CheckWishlistStatus(userIDStr, productIDStr string) (*dto.WishlistStatusResponse, error) {
+
+	userID := helpers.StringToUUID(userIDStr)
+	productID := helpers.StringToUUID(productIDStr)
+	wishlistItem, err := s.wishlistRepo.FindByUserAndProduct(userID, productID)
+	if err != nil {
+		// If record not found, product is not in wishlist
+		if err == gorm.ErrRecordNotFound {
+			return &dto.WishlistStatusResponse{
+				InWishlist: false,
+				Exists:     false,
+				Message:    "Product not in wishlist",
+			}, nil
+		}
+		// For other errors, return the error
+		return nil, err
+	}
+
+	// Product found in wishlist
+	return &dto.WishlistStatusResponse{
+		InWishlist: true,
+		Exists:     true,
+		WishlistID: wishlistItem.ID,
+		AddedAt:    wishlistItem.CreatedAt,
+		Message:    "Product is in wishlist",
+	}, nil
 }

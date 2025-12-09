@@ -21,6 +21,7 @@ type AuthService interface {
 	RefreshTokens(token string) (string, string, error)
 	ForgotPassword(email string) (*models.User, error)
 	UpdatePassword(email string, newPassword string) error
+	InvalidateRefreshToken(token string) error
 }
 
 type authService struct {
@@ -41,7 +42,7 @@ func (S *authService) Register(User dto.RegisterRequest) error {
 		UserName: User.UserName,
 		Email:    User.Email,
 		Password: User.Password,
-		Phone:    &User.Password,
+		Phone:    User.Phone,
 		Address:  &User.Address,
 	}
 	// checking if user exist
@@ -86,6 +87,10 @@ func (S *authService) Login(req dto.LoginReq) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+func (s *authService) InvalidateRefreshToken(token string) error {
+	return s.tokenRepo.RevokeToken(token)
 }
 
 func (S *authService) GenerateAndStoreRefreshToken(userID uuid.UUID) (string, error) {

@@ -63,6 +63,7 @@ func (r *wishlistRepository) DeleteWishlist(wishlistID uuid.UUID) error {
 // ToggleWishlist adds or removes a product from user's wishlist
 func (r *wishlistRepository) ToggleWishlist(userID, productID uuid.UUID) (string, *models.Wishlist, error) {
 	var existing models.Wishlist
+
 	err := r.DB.
 		Where("user_id = ? AND product_id = ?", userID, productID).
 		First(&existing).Error
@@ -90,8 +91,20 @@ func (r *wishlistRepository) ToggleWishlist(userID, productID uuid.UUID) (string
 		return "", nil, createErr
 	}
 
-	return "added", &newItem, nil
+	// 🔥 PRELOAD DATA BEFORE RETURNING
+	var fullItem models.Wishlist
+	if preloadErr := r.DB.
+		Preload("User").
+		Preload("Product").
+		Preload("Product.Images").
+		Where("id = ?", newItem.ID).
+		First(&fullItem).Error; preloadErr != nil {
+		return "added", &newItem, nil // fallback
+	}
+
+	return "added", &fullItem, nil
 }
+
 
 func (r *wishlistRepository) FindByUserAndProduct(userID, productID uuid.UUID) (*models.Wishlist, error) {
 	var item models.Wishlist

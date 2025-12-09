@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/akhilnasimk/SS_backend/internal/dto"
@@ -12,7 +11,7 @@ import (
 
 type CartService interface {
 	GetUserCartItems(userID uuid.UUID) (dto.CartResponse, error)
-	AddItemToCart(userID uuid.UUID, productID uuid.UUID) error
+	AddItemToCart(userID uuid.UUID, productID uuid.UUID) (*dto.CartItemResponse, error)
 	IncOrDecCartItem(idstring string, oper string) error
 	DeleteCartItem(idstring string) error
 }
@@ -39,26 +38,35 @@ func (s *cartService) GetUserCartItems(userID uuid.UUID) (dto.CartResponse, erro
 
 	return dto.MapCartToCartResponse(cart), nil
 }
-
-func (s *cartService) AddItemToCart(userID uuid.UUID, productID uuid.UUID) error {
-
-	//  Validate Product
-	product, err := s.ProductRep.ProductById(productID)
+func (s *cartService) AddItemToCart(userID uuid.UUID, productID uuid.UUID) (*dto.CartItemResponse, error) {
+	// Add to cart (no need for separate product validation as repo does it)
+	cartItem, err := s.cartRepo.AddItemToCart(userID, productID)
 	if err != nil {
-		return errors.New("product not found")
+		return nil, fmt.Errorf("failed adding item to cart: %w", err)
 	}
 
-	// Optional: prevent adding unavailable products
-	if product.StockCount <= 0 || product.DeletedAt.Valid {
-		return errors.New("product not available")
+	// Get product details (already preloaded in cartItem.Product)
+	product := cartItem.Product
+
+	// Build photo URL (handle empty images)
+	photoURL := ""
+	if len(product.Images) > 0 {
+		photoURL = product.Images[0].URL
 	}
 
-	//  Add to cart (auto-creates cart if missing)
-	if err := s.cartRepo.AddItemToCart(userID, productID); err != nil {
-		return fmt.Errorf("failed adding item to cart: %w", err)
+	// Map to response
+	resp := &dto.CartItemResponse{
+		CartItemID:  cartItem.ID,
+		ProductID:   product.ID,
+		ProductName: product.Name,
+		Price:       float64(product.Price),
+		Photo:       photoURL,
+		Total:       float64(product.Price) * float64(cartItem.Quantity),
+		Quantity:    cartItem.Quantity,
+		Catogory:    product.CategoryID,
 	}
 
-	return nil
+	return resp, nil
 }
 
 // patch the quantity of the cart items

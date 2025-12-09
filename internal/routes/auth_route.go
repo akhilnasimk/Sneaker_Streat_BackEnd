@@ -36,6 +36,7 @@ func AuthRoutes(rg *gin.RouterGroup) {
 	{
 		auth.POST("/register", authController.Register)              // Register new user
 		auth.POST("/login", authController.Login)                    // Login and get tokens
+		auth.POST("/logout", authController.Logout)                  //Log out clear cookies and invalidate the refresh token in db
 		auth.POST("/refresh", authController.RefreshToken)           // Refresh token
 		auth.POST("/forgotpassword", authController.ForgotPassword)  // Send OTP to email
 		auth.POST("/verify-otp", authController.VerifyOTP)           // Verify OTP

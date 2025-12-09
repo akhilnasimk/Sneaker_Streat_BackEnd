@@ -17,6 +17,8 @@ type emailService struct{}
 func NewEmailService() EmailService {
 	return &emailService{}
 }
+
+
 func (s *emailService) SendEmail(to, subject, body string) error {
 	from := config.AppConfig.SMTPEmail
 	password := config.AppConfig.SMTPPass

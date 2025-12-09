@@ -26,7 +26,7 @@ func GetLimiter(key string) *rate.Limiter {
 
 	limiter, exists := store.users[key]
 	if !exists {
-		limiter = rate.NewLimiter(2, 10) // 5 req/sec, burst 10
+		limiter = rate.NewLimiter(2, 100) // 5 req/sec, burst 10
 		store.users[key] = limiter
 	}
 	return limiter

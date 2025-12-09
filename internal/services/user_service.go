@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/akhilnasimk/SS_backend/internal/dto"
 	"github.com/akhilnasimk/SS_backend/internal/helpers"
@@ -43,6 +44,7 @@ func (S *userService) GetProfile(id uuid.UUID) (dto.UserProfileResponse, error) 
 	}
 
 	// map model → DTO
+	log.Println(user.Phone)
 	profile = dto.UserProfileResponse{
 		ID:        user.ID,
 		UserName:  user.UserName,

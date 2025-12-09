@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/akhilnasimk/SS_backend/internal/models"
@@ -34,13 +35,10 @@ func (R *otpService) SendOTP(userID uuid.UUID, email string, purpose string) err
 		return err
 	}
 
-	// send OTP email
-	if err := R.EmailService.SendMailOTP(email, otpstring); err != nil {
-		return err
-	}
 	//hash otp
 	hashedOtp, _ := otp.HashOTP(otpstring)
-	// store OTP
+	
+	// store OTP FIRST (so user can verify even if email fails)
 	if err := R.otpRepo.SaveOtp(models.OTP{
 		UserID:    &userID,
 		OTPCode:   hashedOtp,
@@ -50,6 +48,14 @@ func (R *otpService) SendOTP(userID uuid.UUID, email string, purpose string) err
 	}); err != nil {
 		return err
 	}
+
+	// Send email asynchronously (don't wait for it)
+	go func() {
+		if err := R.EmailService.SendMailOTP(email, otpstring); err != nil {
+			// Log the error but don't fail the request
+			fmt.Printf("Failed to send OTP email to %s: %v\n", email, err)
+		}
+	}()
 
 	return nil
 }

@@ -81,13 +81,13 @@ func (c *CartController) AddToCart(ctx *gin.Context) {
 	}
 
 	// Service Layer call
-	err := c.CartService.AddItemToCart(userID, productID)
+	orderitem, err := c.CartService.AddItemToCart(userID, productID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, response.Failure("Failed to add product to cart", err.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Success("Product added to cart successfully", nil))
+	ctx.JSON(http.StatusOK, response.Success("Product added to cart successfully", orderitem))
 }
 
 func (c *CartController) UpdateCount(ctx *gin.Context) {

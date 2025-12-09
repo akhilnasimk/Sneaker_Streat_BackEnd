@@ -39,14 +39,14 @@ func (r *cartRepository) FindAllcartItemsOfUser(userID uuid.UUID) (models.Cart, 
 	return cart, nil
 }
 
-func (r *cartRepository) AddItemToCart(userID uuid.UUID, productID uuid.UUID) error {
+func (r *cartRepository) AddItemToCart(userID uuid.UUID, productID uuid.UUID) (*models.CartItem, error) {
+    var resultCartItem models.CartItem
 
-    return r.DB.Transaction(func(tx *gorm.DB) error {
-
+    err := r.DB.Transaction(func(tx *gorm.DB) error {
         // 1️⃣ Check product exists + active + stock available
         var product models.Product
         err := tx.
-            Clauses(clause.Locking{Strength: "UPDATE"}). // prevent race conditions
+            Clauses(clause.Locking{Strength: "UPDATE"}).
             Where("id = ? AND deleted_at IS NULL AND is_active = TRUE", productID).
             First(&product).Error
 
@@ -67,7 +67,6 @@ func (r *cartRepository) AddItemToCart(userID uuid.UUID, productID uuid.UUID) er
         err = tx.Where("user_id = ?", userID).First(&cart).Error
 
         if errors.Is(err, gorm.ErrRecordNotFound) {
-            // Create cart if not exists
             cart = models.Cart{
                 ID:     uuid.New(),
                 UserID: userID,
@@ -76,7 +75,6 @@ func (r *cartRepository) AddItemToCart(userID uuid.UUID, productID uuid.UUID) er
             if err := tx.Create(&cart).Error; err != nil {
                 return fmt.Errorf("failed creating cart: %w", err)
             }
-
         } else if err != nil {
             return err
         }
@@ -86,33 +84,42 @@ func (r *cartRepository) AddItemToCart(userID uuid.UUID, productID uuid.UUID) er
         err = tx.Where("cart_id = ? AND product_id = ?", cart.ID, productID).
             First(&cartItem).Error
 
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-
-            // Stock is already checked → Add new item
-            newCartItem := models.CartItem{
-                ID:        uuid.New(),
-                CartID:    cart.ID,
-                ProductID: productID,
-                Quantity:  1,
-            }
-
-            if err := tx.Create(&newCartItem).Error; err != nil {
-                return fmt.Errorf("failed creating cart item: %w", err)
-            }
-
-            return nil
+        if err == nil {
+            // Item already exists - return error
+            return fmt.Errorf("product already in cart")
         }
 
-        if err != nil {
+        if !errors.Is(err, gorm.ErrRecordNotFound) {
             return err
         }
 
-        // 5️⃣ If item already in cart → Do NOT increase quantity here
-        // Patch will handle incrementing + stock checking.
+        // 5️⃣ Add new item
+        newCartItem := models.CartItem{
+            ID:        uuid.New(),
+            CartID:    cart.ID,
+            ProductID: productID,
+            Quantity:  1,
+        }
+
+        if err := tx.Create(&newCartItem).Error; err != nil {
+            return fmt.Errorf("failed creating cart item: %w", err)
+        }
+
+        // Load the product relation for response
+        if err := tx.Preload("Product.Images").First(&newCartItem, newCartItem.ID).Error; err != nil {
+            return err
+        }
+
+        resultCartItem = newCartItem
         return nil
     })
-}
 
+    if err != nil {
+        return nil, err
+    }
+
+    return &resultCartItem, nil
+}
 
 func (r *cartRepository) PatchQuantity(id uuid.UUID, op string) error {
 	switch op {

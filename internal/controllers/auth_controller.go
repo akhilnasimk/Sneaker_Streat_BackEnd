@@ -139,6 +139,24 @@ func (r *AuthController) Login(ctx *gin.Context) {
 	})
 }
 
+func (r *AuthController) Logout(ctx *gin.Context) {
+	// 1. Get refresh token from cookie
+	refreshToken, err := ctx.Cookie("refresh_token")
+	if err == nil && refreshToken != "" {
+		// Invalidate refresh token in DB
+		_ = r.authService.InvalidateRefreshToken(refreshToken)
+	}
+
+	// 2. Delete Cookies (overwrite with empty + expired)
+	ctx.SetCookie("access_token", "", -1, "/", "", false, true)
+	ctx.SetCookie("refresh_token", "", -1, "/", "", false, true)
+
+	// 3. Response
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "logged out successfully",
+	})
+}
+
 func (r *AuthController) RefreshToken(ctx *gin.Context) {
 	refresh, err := ctx.Cookie("refresh_token")
 	if err != nil || refresh == "" {

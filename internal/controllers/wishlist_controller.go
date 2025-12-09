@@ -9,10 +9,10 @@ import (
 )
 
 type WishlistController struct {
-	wishlistService *services.WishlistService
+	wishlistService services.WishlistService
 }
 
-func NewWishlistController(wishlistService *services.WishlistService) *WishlistController {
+func NewWishlistController(wishlistService services.WishlistService) *WishlistController {
 	return &WishlistController{
 		wishlistService: wishlistService,
 	}
@@ -82,4 +82,27 @@ func (c *WishlistController) DeleteWishlistItem(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, response.Success("wishlist item deleted successfully", nil))
+}
+
+func (c *WishlistController) CheckProduct(ctx *gin.Context) {
+	userId, exist := ctx.Get("UserID")
+	if !exist {
+		ctx.JSON(400, response.Failure("Un Autherized ", nil))
+		return
+	}
+
+	PId := ctx.Param("product-id")
+	if PId == "" {
+		ctx.JSON(400, response.Failure("Need to pass the product ID  ", nil))
+		return
+	}
+
+	resp, err := c.wishlistService.CheckWishlistStatus(userId.(string), PId)
+
+	if err != nil {
+		ctx.JSON(400, response.Failure("Something went wrong in the check ", err))
+		return
+	}
+
+	ctx.JSON(200, response.Success("Check sucess", resp))
 }
