@@ -14,6 +14,13 @@ func SetupRoutes(r *gin.Engine) {
 	r.Use(middlewares.RateLimitMiddleware())
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	//for testing purpose only 
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
+
 	api := r.Group("/api/v1")
 	// Auth routes: login, register, refresh
 	auth := api.Group("/auth")
